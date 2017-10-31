@@ -3,6 +3,7 @@
 
 import atexit
 import os
+import pika
 import time
 
 from PIL import Image
@@ -10,17 +11,18 @@ from PIL import ImageDraw
 from PIL import ImageFont
 from rgbmatrix import Adafruit_RGBmatrix
 
+from widgets import Clock
+
 width          = 128  # Matrix size (pixels) -- change for different matrix
 height         = 32  # types (incl. tiling).  Other code may need tweaks.
 matrix         = Adafruit_RGBmatrix(32, 4) # rows, chain length
 fps            = 10  # Scrolling speed (ish)
 
-print(os.path.dirname(os.path.realpath(__file__)) + '/helvR08.pil')
-
-font           = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + '/helvR08.pil')
-fontYoffset    = -2  # Scoot up a couple lines so descenders aren't croppe
-
 # Main application -----------------------------------------------------------
+
+# Connect to RabbitMQ
+#rmqConn = pika.BlockingConnection(pika.ConnectionParameters(host='localhost',port=1234))
+#rmqChan = rmqConn.channel()
 
 # Drawing takes place in offscreen buffer to prevent flicker
 image       = Image.new('RGB', (width, height))
@@ -28,24 +30,8 @@ draw        = ImageDraw.Draw(image)
 currentTime = 0.0
 prevTime    = 0.0
 
-# Widgets
-class Clock:
-    def draw(self, offset, tiles):
-
-        draw.rectangle((0, 0, 0, 31), fill=(64, 8, 8))
-        draw.rectangle((31, 0, 31, 31), fill=(8, 8, 64))
-
-        theText = time.strftime("%I:%M")
-        if (time.strftime("%p") == "PM"):
-            theText += "p"
-        else:
-            theText += "a"
-
-        textWidth = font.getsize(theText)[0]
-        draw.text(((32 - textWidth) / 2, 0 + fontYoffset), theText, font=font, fill=(128, 128, 128))
-        return
-
-wdgtClock = Clock()
+# Load Widgets
+wdgtClock = Clock(draw)
 
 # Clear matrix on exit.  Otherwise it's annoying if you need to break and
 # fiddle with some code while LEDs are blinding you.
@@ -60,7 +46,7 @@ while True:
     # Clear background
     draw.rectangle((0, 0, width, height), fill=(0, 0, 0))
 
-    wdgtClock.draw(0, 1);
+    wdgtClock.draw(0, 1)
 
     # Try to keep timing uniform-ish; rather than sleeping a fixed time,
     # interval since last frame is calculated, the gap time between this
